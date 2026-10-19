@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "selfforge"
+version = "0.1.0"
+description = "A self-improving LangGraph agent that reflects on its own failures and rewrites its policy. Groq LLM, deploys to Amazon Bedrock AgentCore."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Arash Omranpour" }]
+keywords = ["llm", "agent", "langchain", "langgraph", "groq", "bedrock", "agentcore", "self-improving", "reflexion"]
+
+dependencies = [
+  "langgraph>=0.4",
+  "langchain>=0.3",
+  "langchain-core>=0.3",
+  "langchain-groq>=0.2",
+  "pydantic>=2.6",
+  "typer>=0.12",
+  "rich>=13.7",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+web = ["fastapi>=0.110", "uvicorn>=0.29"]
+agentcore = ["bedrock-agentcore>=0.1"]
+dev = ["pytest>=8", "ruff>=0.5", "fastapi>=0.110", "uvicorn>=0.29"]
+
+[project.scripts]
+selfforge = "selfforge.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/selfforge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"

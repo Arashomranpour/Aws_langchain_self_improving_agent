@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SelfForge</title>
+<style>
+  :root{
+    --bg:#0a0c12; --panel:#121620; --panel2:#171c28; --line:#232a3a;
+    --ink:#e7ecf5; --muted:#8b96ad; --brand:#6ea8fe; --brand2:#7af0c8;
+    --train:#f0a35e; --test:#7af0c8; --chip:#1d2433;
+    --shadow:0 10px 40px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 700px at 70% -10%,#16203a 0%,var(--bg) 55%);
+       color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif;
+       min-height:100vh;padding:28px 18px 60px}
+  .wrap{max-width:1060px;margin:0 auto}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+        display:grid;place-items:center;font-weight:800;color:#07101f;box-shadow:var(--shadow)}
+  h1{font-size:26px;margin:0;letter-spacing:-.4px}
+  .sub{color:var(--muted);margin:2px 0 22px;max-width:640px}
+  .sub b{color:var(--ink);font-weight:600}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;background:var(--panel);
+            border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  select,input{background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+       border-radius:10px;padding:9px 11px;font-size:14px;min-width:120px}
+  button{margin-left:auto;background:linear-gradient(135deg,var(--brand),#5b84e6);color:#07101f;
+       font-weight:700;border:0;border-radius:11px;padding:12px 20px;font-size:15px;cursor:pointer;
+       box-shadow:0 6px 18px rgba(110,168,254,.35);transition:transform .08s ease,filter .2s}
+  button:hover{filter:brightness(1.07)} button:active{transform:translateY(1px)}
+  button:disabled{filter:grayscale(.6) brightness(.8);cursor:progress}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .stat .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .stat .v{font-size:26px;font-weight:800;margin-top:4px;letter-spacing:-.5px}
+  .v.good{color:var(--test)} .v.up{color:var(--brand)}
+  .card h3{margin:0 0 12px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+  canvas{width:100%;height:260px;display:block}
+  .legend{display:flex;gap:18px;margin-top:8px;font-size:13px;color:var(--muted)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  #log{display:flex;flex-direction:column;gap:10px;max-height:300px;overflow:auto}
+  .round{border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--panel2);
+        opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s}
+  .round.show{opacity:1;transform:none}
+  .round .top{display:flex;align-items:center;gap:8px;font-weight:600}
+  .round .acc{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--test);font-weight:700}
+  .chip{background:var(--chip);border:1px solid var(--line);color:var(--brand2);border-radius:999px;
+        padding:2px 10px;font-size:12px;font-weight:700}
+  .diag{color:var(--muted);font-size:13px;margin-top:5px}
+  #policy{display:flex;flex-direction:column;gap:7px}
+  .rule{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;opacity:0;transform:translateX(-6px);
+        transition:opacity .3s,transform .3s}
+  .rule.show{opacity:1;transform:none}
+  .rule .i{color:var(--brand2);font-weight:800}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:22px;text-align:center}
+  .err{color:#ff9a9a;font-size:14px;margin-top:10px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">SF</div>
+    <div>
+      <h1>SelfForge</h1>
+    </div>
+  </header>
+  <p class="sub">A <b>self-improving agent</b> built on <b>LangGraph</b>. It attempts a task, grades
+    itself on a held-out set, <b>reflects on its own failures</b>, and rewrites its policy —
+    learning one capability per round. LLM served by <b>Groq</b>; deploys to <b>Amazon Bedrock AgentCore</b>.</p>
+
+  <div class="controls">
+    <div class="ctl">
+      <label>LLM provider</label>
+      <select id="provider">
+        <option value="offline">Offline engine (no key)</option>
+        <option value="groq">Groq (llama-3.3-70b)</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <label>Max rounds</label>
+      <input id="rounds" type="number" value="8" min="1" max="12" />
+    </div>
+    <div class="ctl">
+      <label>Target acc</label>
+      <input id="target" type="number" value="0.98" min="0.5" max="1" step="0.01" />
+    </div>
+    <button id="run">▶ Run self-improvement</button>
+  </div>
+  <div id="err" class="err"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">Start test acc</div><div class="v" id="s-start">—</div></div>
+    <div class="stat"><div class="k">Final test acc</div><div class="v good" id="s-final">—</div></div>
+    <div class="stat"><div class="k">Improvement</div><div class="v up" id="s-delta">—</div></div>
+    <div class="stat"><div class="k">Rounds</div><div class="v" id="s-rounds">—</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Accuracy per round</h3>
+      <canvas id="chart" width="900" height="520"></canvas>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--train)"></span>Train</span>
+        <span><span class="dot" style="background:var(--test)"></span>Held-out test</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Reflection log</h3>
+      <div id="log"><div class="diag">Press “Run self-improvement” to start.</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>Policy the agent wrote for itself</h3>
+    <div id="policy"><div class="diag">The learned rules will appear here as the agent discovers them.</div></div>
+  </div>
+
+  <div class="foot">LangGraph loop: <b>evaluate → reflect → optimize</b> · Groq LLM · Amazon Bedrock AgentCore Runtime</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let rounds = [];
+
+function pct(x){ return Math.round(x*100) + "%"; }
+
+function drawChart(upto){
+  const c = $("chart"), ctx = c.getContext("2d");
+  const W = c.width, H = c.height, pad = 54;
+  ctx.clearRect(0,0,W,H);
+  // grid + y labels
+  ctx.strokeStyle = "#232a3a"; ctx.fillStyle = "#8b96ad"; ctx.lineWidth = 1;
+  ctx.font = "20px ui-sans-serif,system-ui";
+  for(let i=0;i<=5;i++){
+    const y = pad + (H-2*pad)*(i/5);
+    ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
+    ctx.fillText((100-i*20)+"%", 8, y+6);
+  }
+  if(!rounds.length) return;
+  const n = rounds.length;
+  const xAt = i => pad + (W-2*pad) * (n===1?0.5:i/(n-1));
+  const yAt = v => pad + (H-2*pad) * (1-v);
+  // x labels
+  ctx.textAlign = "center";
+  for(let i=0;i<n;i++){ ctx.fillText("R"+i, xAt(i), H-pad+28); }
+  ctx.textAlign = "left";
+  const series = (key,color)=>{
+    ctx.strokeStyle=color; ctx.lineWidth=3; ctx.beginPath();
+    for(let i=0;i<=upto && i<n;i++){ const x=xAt(i),y=yAt(rounds[i][key]);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+    ctx.fillStyle=color;
+    for(let i=0;i<=upto && i<n;i++){ ctx.beginPath(); ctx.arc(xAt(i),yAt(rounds[i][key]),5,0,7); ctx.fill(); }
+  };
+  series("train_accuracy","#f0a35e");
+  series("test_accuracy","#7af0c8");
+}
+
+function reset(){
+  rounds=[]; $("log").innerHTML=""; $("policy").innerHTML=""; $("err").textContent="";
+  ["s-start","s-final","s-delta","s-rounds"].forEach(i=>$(i).textContent="…");
+  drawChart(-1);
+}
+
+async function runIt(){
+  reset();
+  const btn=$("run"); btn.disabled=true; btn.textContent="Running…";
+  try{
+    const r = await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({provider:$("provider").value,max_rounds:+$("rounds").value,target:+$("target").value})});
+    const data = await r.json();
+    if(data.error){ $("err").textContent = "⚠ "+data.error; btn.disabled=false; btn.textContent="▶ Run self-improvement"; return; }
+    rounds = data.rounds;
+    $("s-start").textContent = pct(data.start_test_accuracy);
+    $("s-final").textContent = pct(data.final_test_accuracy);
+    $("s-delta").textContent = "+"+Math.round(data.improvement*100)+" pts";
+    $("s-rounds").textContent = rounds.length;
+    animate(data);
+  }catch(e){ $("err").textContent="⚠ "+e; }
+  btn.disabled=false; btn.textContent="▶ Run self-improvement";
+}
+
+function animate(data){
+  const log=$("log"), pol=$("policy"); log.innerHTML=""; pol.innerHTML="";
+  let i=0;
+  const step=()=>{
+    if(i>=rounds.length){ return; }
+    const m=rounds[i]; drawChart(i);
+    const div=document.createElement("div"); div.className="round";
+    const learned = (m.newly_learned||[]).map(x=>`<span class="chip">+ ${x}</span>`).join(" ")
+                    || '<span class="diag" style="margin:0">target reached</span>';
+    const diag = (m.reflections&&m.reflections[0]) ? m.reflections[0].diagnosis : "Policy solves the training set.";
+    div.innerHTML = `<div class="top">Round ${m.round} ${learned}
+        <span class="acc">test ${pct(m.test_accuracy)}</span></div>
+        <div class="diag">${diag}</div>`;
+    log.appendChild(div); requestAnimationFrame(()=>div.classList.add("show"));
+    log.scrollTop=log.scrollHeight;
+    // grow policy with any newly learned guidance
+    (m.reflections||[]).filter(x=>(m.newly_learned||[]).includes(x.proposed_rule)).forEach(x=>{
+      const rl=document.createElement("div"); rl.className="rule";
+      rl.innerHTML=`<span class="i">▸</span><span>${x.guidance}</span>`;
+      pol.appendChild(rl); requestAnimationFrame(()=>rl.classList.add("show"));
+    });
+    i++; setTimeout(step, 620);
+  };
+  step();
+}
+
+$("run").addEventListener("click", runIt);
+drawChart(-1);
+</script>
+</body>
+</html>

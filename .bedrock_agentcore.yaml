@@ -1,0 +1,25 @@
+# Bedrock AgentCore deployment config (reference).
+# Generated/updated by `agentcore configure`; shown here so the deploy is reproducible.
+#
+#   pip install bedrock-agentcore-starter-toolkit
+#   agentcore configure -e src/selfforge/agentcore_app.py --name selfforge
+#   agentcore launch          # builds the ARM64 image (CodeBuild), pushes to ECR, deploys
+#   agentcore invoke '{"action":"improve","provider":"groq"}'
+#
+# GROQ_API_KEY must be provided to the runtime (see --env on launch, or AgentCore
+# environment configuration / Secrets Manager).
+default_agent: selfforge
+agents:
+  selfforge:
+    entrypoint: src/selfforge/agentcore_app.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      region: eu-west-1            # change to your region
+      network_configuration:
+        network_mode: PUBLIC
+      observability:
+        enabled: true
+    environment:
+      GROQ_MODEL: llama-3.3-70b-versatile
+      # GROQ_API_KEY: supplied at launch via --env or Secrets Manager (never commit it)
